@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import boto3
-import ConfigParser
+import configparser
 import os
 import csv
 import datetime
@@ -82,7 +82,7 @@ def dump_to_csv(instance_list):
   with open(filename, 'w') as instance_file:
         writer = csv.writer(instance_file, lineterminator='\n')
         #csv header row
-        writer.writerow(['AWS Account','Region', 'Instance ID','Internal IP','External IP','Name','Security Group','Ports open to Internet'])
+        writer.writerow(['Account', 'Account ID','Region', 'Instance ID','Internal IP','External IP','Name','Security Group','Ports open to Internet'])
         for instance in instance_list:
            writer.writerow(instance)
 
@@ -96,7 +96,7 @@ if __name__ == "__main__":
     instance_list = []
 
     #read in the sections from the credentials file
-    config = ConfigParser.ConfigParser()
+    config = configparser.ConfigParser()
     config.read(configdir)
 
     #loop through each section in the credentials file - this allows us to search through multiple AWS accounts
@@ -117,7 +117,7 @@ if __name__ == "__main__":
                 for sg_id in ec2_instances[instance]:
                     open_cidrs = inspect_security_group(ec2, sg_id)
                     if open_cidrs: #only print if there are open cidrs
-                        instance_info = account_id, region, instance, instance_private_ips[instance], instance_public_ips[instance], instance_ident[instance], sg_id, open_cidrs
+                        instance_info = section, account_id, region, instance, instance_private_ips[instance], instance_public_ips[instance], instance_ident[instance], sg_id, open_cidrs
                         print(instance_info)
                         instance_list.append(instance_info)
 
