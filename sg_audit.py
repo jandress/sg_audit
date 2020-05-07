@@ -102,14 +102,18 @@ if __name__ == "__main__":
     #loop through each section in the credentials file - this allows us to search through multiple AWS accounts
     for section in config.sections():
         session = boto3.Session(profile_name=section)
-        client = session.client('ec2', region_name = staticregion)
-        stsclient = session.client('sts', region_name = staticregion)
+        client = session.client('ec2', region_name = staticregion) #for getting the ec2 info
+        stsclient = session.client('sts', region_name = staticregion) #for getting the account id
+        iamclient = session.client('iam', region_name = staticregion) #for getting the account alias
 
         regions = [region['RegionName'] for region in client.describe_regions()['Regions']]
 
         for region in regions:
             account_id = stsclient.get_caller_identity()["Account"]
-            print("Checking "+section+"("+account_id+")"+" "+region+" ")
+            #using account alias here is potentially less truthy than account name, but requires lesser permissions to get
+            #this will still barf if user on the aws does not have IAM rights
+            account_alias = iamclient.list_account_aliases()['AccountAliases'][0]
+            print("Checking "+account_alias+" ("+account_id+")"+" "+region+" ")
             ec2 = session.resource('ec2', region_name = region)
             (ec2_instances, instance_public_ips, instance_private_ips, instance_ident) = get_ec2_instances(ec2)
 
@@ -117,7 +121,7 @@ if __name__ == "__main__":
                 for sg_id in ec2_instances[instance]:
                     open_cidrs = inspect_security_group(ec2, sg_id)
                     if open_cidrs: #only print if there are open cidrs
-                        instance_info = section, account_id, region, instance, instance_private_ips[instance], instance_public_ips[instance], instance_ident[instance], sg_id, open_cidrs
+                        instance_info = account_alias, account_id, region, instance, instance_private_ips[instance], instance_public_ips[instance], instance_ident[instance], sg_id, open_cidrs
                         print(instance_info)
                         instance_list.append(instance_info)
 
