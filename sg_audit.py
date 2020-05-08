@@ -14,6 +14,7 @@ def get_ec2_instances(ec2):
     instance_public_ips = {}
     instance_private_ips = {}
     instance_ident = {}
+    instance_tags = {}
     #just get the instances that are running
     instances = ec2.instances.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running'] }])
  
@@ -25,6 +26,15 @@ def get_ec2_instances(ec2):
                     instance_name = instance.tags[i]['Value']
         else:
             instance_name = "unknown"
+        if instance.tags:
+           instance_tags = ""
+           for tag in instance.tags:
+              tag_key = tag['Key']
+              tag_value = tag['Value']
+              tag_info = tag_key+": "+tag_value+", "
+              instance_tags += tag_info
+        else:
+           instance_tags = "no tags found"
         instance_ident[instance.id] = instance_name
         values=[]
         for i in range(len(instance.security_groups)):
@@ -32,7 +42,7 @@ def get_ec2_instances(ec2):
             found_instances[instance.id] = values
             instance_public_ips[instance.id] = instance.public_ip_address
             instance_private_ips[instance.id] = instance.private_ip_address
-    return (found_instances, instance_public_ips,instance_private_ips, instance_ident)
+    return (found_instances, instance_public_ips,instance_private_ips, instance_ident, instance_tags)
  
 def inspect_security_group(ec2, sg_id):
 #look at the security groups for ports open to the internet
@@ -82,7 +92,7 @@ def dump_to_csv(instance_list):
   with open(filename, 'w') as instance_file:
         writer = csv.writer(instance_file, lineterminator='\n')
         #csv header row
-        writer.writerow(['Account', 'Account ID','Region', 'Instance ID','Internal IP','External IP','Name','Security Group','Ports open to Internet'])
+        writer.writerow(['Account', 'Account ID','Region', 'Instance ID','Internal IP','External IP','Name','Tags','Security Group','Ports open to Internet'])
         for instance in instance_list:
            writer.writerow(instance)
 
@@ -112,17 +122,20 @@ if __name__ == "__main__":
             account_id = stsclient.get_caller_identity()["Account"]
             #using account alias here is potentially less truthy than account name, but requires lesser permissions to get
             #this will still barf if user on the aws does not have IAM rights
-            account_alias = iamclient.list_account_aliases()['AccountAliases'][0]
+            try:
+               account_alias = iamclient.list_account_aliases()['AccountAliases'][0]
+            except IndexError: #we'll get an index error if no alias is set
+               account_alias = "no alias set" 
             print("Checking "+account_alias+" ("+account_id+")"+" "+region+" ")
             ec2 = session.resource('ec2', region_name = region)
-            (ec2_instances, instance_public_ips, instance_private_ips, instance_ident) = get_ec2_instances(ec2)
+            (ec2_instances, instance_public_ips, instance_private_ips, instance_ident, instance_tags) = get_ec2_instances(ec2)
 
             for instance in ec2_instances:
-                for sg_id in ec2_instances[instance]:
-                    open_cidrs = inspect_security_group(ec2, sg_id)
-                    if open_cidrs: #only print if there are open cidrs
-                        instance_info = account_alias, account_id, region, instance, instance_private_ips[instance], instance_public_ips[instance], instance_ident[instance], sg_id, open_cidrs
-                        print(instance_info)
-                        instance_list.append(instance_info)
+               for sg_id in ec2_instances[instance]:
+                  open_cidrs = inspect_security_group(ec2, sg_id)
+                  if open_cidrs: #only print if there are open cidrs
+                     instance_info = account_alias, account_id, region, instance, instance_private_ips[instance], instance_public_ips[instance], instance_ident[instance], instance_tags, sg_id, open_cidrs
+                     print(instance_info)
+                     instance_list.append(instance_info)
 
     dump_to_csv(instance_list)
