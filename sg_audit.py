@@ -9,7 +9,7 @@ import socket
 
 def get_ec2_instances(ec2):
 #get the ec2 instances and their associated info
-    #print("in get_ec2_instances")
+    print("in get_ec2_instances")
     found_instances = {}
     instance_public_ips = {}
     instance_private_ips = {}
