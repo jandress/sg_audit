@@ -83,7 +83,7 @@ def inspect_security_group(ec2, sg_id):
     return open_cidrs
  
 def dump_to_csv(instance_list):
-#dump out everything we found to a csv file
+#dump out everything we found to a csv
   print("in dump_to_csv")
   list_length = len(instance_list[0])
   d = datetime.datetime.now()
