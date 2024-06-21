@@ -1,2 +1,3 @@
-# sg_audit
-Report on AWS instances with ports open to 0.0.0.0/0 - produces a CSV file showing AWS Account alias, Account ID, Region, Instance ID, Internal IP, External IP, Name, Tags, Security Group, and Ports open to Internet.
+# SG Audit
+
+SG Audit is a Python script that audits AWS EC2 instances and their associated Security Groups to identify any rules that allow traffic from the entire internet (CIDR `0.0.0.0/0`). 

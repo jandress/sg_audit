@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import boto3
+from botocore.exceptions import NoCredentialsError, PartialCredentialsError
 import configparser
 import os
 import csv
